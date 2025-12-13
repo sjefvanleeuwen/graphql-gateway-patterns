@@ -1,0 +1,7 @@
+type Subscription {
+  onGatewayReloaded: String!
+}
+
+type Query {
+  status: String
+}

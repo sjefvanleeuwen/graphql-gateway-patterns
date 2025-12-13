@@ -29,7 +29,10 @@ dotnet fusion subgraph pack -w . -s schemas/shipping.graphql -c schemas/shipping
 # Pack Orders Subgraph
 dotnet fusion subgraph pack -w . -s schemas/orders.graphql -c schemas/orders-config.json -p schemas/orders.fsp
 
+# Pack Status Subgraph
+dotnet fusion subgraph pack -w . -s schemas/status.graphql -c schemas/status-config.json -p schemas/status.fsp
+
 # Compose Gateway
-dotnet fusion compose -p Gateway/gateway.fgp -s schemas/products.fsp -s schemas/reviews.fsp -s schemas/shipping.fsp -s schemas/orders.fsp
+dotnet fusion compose -p Gateway/gateway.fgp -s schemas/products.fsp -s schemas/reviews.fsp -s schemas/shipping.fsp -s schemas/orders.fsp -s schemas/status.fsp
 
 Write-Host "Gateway configuration generated at Gateway/gateway.fgp"

@@ -52,7 +52,7 @@ public class OrderHandler
             _repository.Update(updatedOrder);
             Console.WriteLine($"[OrdersService] Order {message.OrderId} status updated to Processed.");
             
-            await _sender.SendAsync(nameof(Subscription.OnOrderUpdated), updatedOrder);
+            await _sender.SendAsync("OrderUpdated", updatedOrder);
         }
     }
 }

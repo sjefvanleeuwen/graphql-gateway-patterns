@@ -7,6 +7,6 @@ namespace OrdersService;
 public class Subscription
 {
     [Subscribe]
-    [Topic]
+    [Topic("OrderUpdated")]
     public Order OnOrderUpdated([EventMessage] Order order) => order;
 }
