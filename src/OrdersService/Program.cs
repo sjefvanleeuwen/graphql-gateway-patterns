@@ -19,11 +19,14 @@ builder.Services
     .AddGraphQLServer()
     .AddQueryType<Query>()
     .AddMutationType<Mutation>()
+    .AddSubscriptionType<Subscription>()
+    .AddInMemorySubscriptions()
     .AddFiltering()
     .AddSorting();
 
 var app = builder.Build();
 
+app.UseWebSockets();
 app.MapGraphQL();
 
 app.RunWithGraphQLCommands(args);

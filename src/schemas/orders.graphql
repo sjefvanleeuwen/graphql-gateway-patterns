@@ -1,6 +1,7 @@
 schema {
   query: Query
   mutation: Mutation
+  subscription: Subscription
 }
 
 type Mutation {
@@ -47,6 +48,10 @@ type PageInfo {
 
 type Query {
   orders("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String where: OrderFilterInput @cost(weight: "10") order: [OrderSortInput!] @cost(weight: "10")): OrdersConnection @listSize(assumedSize: 50, slicingArguments: [ "first", "last" ], slicingArgumentDefaultValue: 10, sizedFields: [ "edges", "nodes" ], requireOneSlicingArgument: false)
+}
+
+type Subscription {
+  onOrderUpdated: Order!
 }
 
 input FloatOperationFilterInput {

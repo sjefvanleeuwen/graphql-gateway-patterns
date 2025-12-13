@@ -10,6 +10,7 @@
     <PackageReference Include="HotChocolate.AspNetCore" Version="15.1.11" />
     <PackageReference Include="HotChocolate.AspNetCore.CommandLine" Version="15.1.11" />
     <PackageReference Include="HotChocolate.Data" Version="15.1.11" />
+    <PackageReference Include="HotChocolate.Subscriptions" Version="15.1.11" />
     <PackageReference Include="WolverineFx" Version="5.7.1" />
   </ItemGroup>
 

@@ -6,33 +6,93 @@ Unlike traditional API gateways that manually map REST endpoints, this solution 
 
 ## 🏗️ Architecture
 
-The system consists of a central **Fusion Gateway** and three downstream **GraphQL Subgraphs**.
+The system consists of a central **Fusion Gateway**, four downstream **GraphQL Subgraphs**, a **Back Office Worker**, and a **React Frontend**.
 
 ```mermaid
 graph TD
-    Client[Client Application]
+    Client["React Frontend<br/>(Port 5173)"]
     Gateway["Fusion Gateway<br/>(Port 5000)"]
     
     subgraph "Distributed Graph"
         Products["Products Service<br/>(Port 5001)"]
         Reviews["Reviews Service<br/>(Port 5002)"]
         Shipping["Shipping Service<br/>(Port 5003)"]
+        Orders["Orders Service<br/>(Port 5004)"]
     end
 
-    Client -- "Unified GraphQL Query" --> Gateway
-    Gateway -- "Query Plan Execution" --> Products
-    Gateway -- "Query Plan Execution" --> Reviews
-    Gateway -- "Query Plan Execution" --> Shipping
+    subgraph "Async Processing (CQRS)"
+        BackOffice["Back Office Worker<br/>(Port 5005)"]
+    end
+
+    subgraph "Infrastructure"
+        Bus[("Wolverine Message Bus")]
+        BackingServices["Supported Transports & Persistence:<br/>Azure Service Bus,<br/>SQL Server, PostgreSQL (Marten / EF Core), TCP"]
+        Bus -.-> BackingServices
+    end
+
+    %% Client Interactions
+    Client -- "HTTP Mutation (Place Order)" --> Gateway
+    Client -- "WebSocket Subscription (Live Updates)" --> Gateway
+
+    %% Gateway Routing
+    Gateway -- "HTTP Query" --> Products
+    Gateway -- "HTTP Query" --> Reviews
+    Gateway -- "HTTP Query" --> Shipping
+    Gateway -- "HTTP Mutation" --> Orders
+    Gateway -- "WebSocket Subscription Proxy" --> Orders
+
+    %% Async Flow
+    Orders -- "Publish OrderPlaced" --> Bus
+    Bus -- "Deliver OrderPlaced" --> BackOffice
+    
+    BackOffice -- "Publish OrderProcessed" --> Bus
+    Bus -- "Deliver OrderProcessed" --> Orders
+    
+    Orders -.->|"Push Notification"| Gateway
 ```
 
 ### Service Inventory
 
 | Service | Port | Type | Description |
 |---------|------|------|-------------|
-| **Gateway** | `5000` | Fusion | The entry point. Handles query planning and execution across subgraphs. |
+| **Gateway** | `5000` | Fusion | The entry point. Handles query planning and execution across subgraphs. Proxies WebSockets for real-time updates. |
 | **Products** | `5001` | Subgraph | Manages product catalog data. |
 | **Reviews** | `5002` | Subgraph | Manages customer reviews and ratings. |
 | **Shipping** | `5003` | Subgraph | Calculates shipping costs and delivery estimates. |
+| **Orders** | `5004` | Subgraph | Handles order placement (Mutation) and pushes real-time status updates (Subscription). |
+| **BackOffice** | `N/A` | Worker | Asynchronously processes orders and publishes events. |
+| **Frontend** | `5173` | React | Modern UI for browsing products and placing orders. |
+
+---
+
+## 🚀 CQRS & Event-Driven Architecture
+
+This solution implements a **CQRS (Command Query Responsibility Segregation)** pattern using **Wolverine** as the in-memory service bus (which can be swapped for durable brokers).
+
+### Workflow
+1.  **Command**: The Frontend sends a `placeOrder` mutation to the **Gateway**, which routes it to the **Orders Service**.
+2.  **Dispatch**: The `Orders Service` saves the order as "Placed" and publishes an `OrderPlaced` event via **Wolverine**.
+3.  **Async Processing**: The **Back Office Service** (a background worker) listens for `OrderPlaced`. It simulates processing (e.g., payment, inventory) and then publishes an `OrderProcessed` event.
+4.  **Reaction**: The `Orders Service` listens for `OrderProcessed`, updates the order status to "Processed", and publishes a GraphQL Subscription update (`OnOrderUpdated`).
+5.  **Notification**: The Frontend receives the subscription update via **WebSockets** (proxied through the Gateway) and displays a toast notification.
+
+> **Note on Real-Time Updates**: The `OrdersService` exposes a GraphQL Subscription endpoint. The Fusion Gateway automatically detects this and sets up a WebSocket proxy. When the `OrdersService` publishes an event, it travels: `OrdersService` -> `Gateway` -> `React Frontend`.
+
+### Wolverine Capabilities
+We use **Wolverine** for message routing and handling. While this demo uses TCP/In-Memory transport for simplicity, Wolverine supports enterprise-grade infrastructure:
+
+*   **Transports (Brokers)**:
+    *   Azure Service Bus
+    *   Amazon SQS
+    *   RabbitMQ
+    *   TCP (Direct)
+    *   In-Memory (Local)
+*   **Persistence (Transactional Outbox)**:
+    *   PostgreSQL (via Marten)
+    *   SQL Server
+    *   Entity Framework Core
+
+This allows the architecture to scale from a simple local development setup to a robust, durable, cloud-native distributed system with minimal code changes.
 
 ---
 

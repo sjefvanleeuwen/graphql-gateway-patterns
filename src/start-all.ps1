@@ -28,11 +28,25 @@ try {
     $p4 = Start-Process dotnet -ArgumentList "run --project Gateway --urls=http://localhost:5000" -PassThru -NoNewWindow
     $processes += $p4
 
+    Write-Host "Starting Frontend..."
+    $frontendPath = Join-Path $PSScriptRoot "..\frontend"
+    
+    $isWindows = $env:OS -like "*Windows*" -or $IsWindows
+    if ($isWindows) {
+        $pFrontend = Start-Process "cmd.exe" -ArgumentList "/c npm run dev" -WorkingDirectory $frontendPath -PassThru -NoNewWindow
+    } else {
+        $pFrontend = Start-Process "npm" -ArgumentList "run dev" -WorkingDirectory $frontendPath -PassThru -NoNewWindow
+    }
+    $processes += $pFrontend
+
     Write-Host "Waiting for services to initialize..."
     Start-Sleep -Seconds 5
 
     Write-Host "Opening Gateway in Browser..."
     Start-Process "http://localhost:5000/graphql"
+    
+    Write-Host "Opening Frontend in Browser..."
+    Start-Process "http://localhost:5173"
 
     Write-Host "----------------------------------------------------------------"
     Write-Host "Services are running. Press 'Q' or Ctrl+C to stop all services."

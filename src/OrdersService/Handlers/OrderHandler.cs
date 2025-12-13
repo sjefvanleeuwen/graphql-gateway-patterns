@@ -5,16 +5,19 @@ using Wolverine;
 using Shared;
 using System.Threading.Tasks;
 using System;
+using HotChocolate.Subscriptions;
 
 namespace OrdersService.Handlers;
 
 public class OrderHandler
 {
     private readonly OrderRepository _repository;
+    private readonly ITopicEventSender _sender;
 
-    public OrderHandler(OrderRepository repository)
+    public OrderHandler(OrderRepository repository, ITopicEventSender sender)
     {
         _repository = repository;
+        _sender = sender;
     }
 
     public async Task<Order> Handle(PlaceOrder command, IMessageContext context)
@@ -40,7 +43,7 @@ public class OrderHandler
         return order;
     }
 
-    public void Handle(OrderProcessed message)
+    public async Task Handle(OrderProcessed message)
     {
         var order = _repository.GetById(message.OrderId);
         if (order != null)
@@ -48,6 +51,8 @@ public class OrderHandler
             var updatedOrder = order with { Status = "Processed" };
             _repository.Update(updatedOrder);
             Console.WriteLine($"[OrdersService] Order {message.OrderId} status updated to Processed.");
+            
+            await _sender.SendAsync(nameof(Subscription.OnOrderUpdated), updatedOrder);
         }
     }
 }
