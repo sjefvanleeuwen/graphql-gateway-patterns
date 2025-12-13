@@ -374,6 +374,15 @@ The configuration is purely declarative and based on shared types:
 *   **No Gateway Config**: You don't need to write manual mapping rules in the Gateway.
 *   **Decoupled**: `OrdersService` only knows about "Products" as an abstract concept (an ID), not as a concrete service.
 
+### The Tradeoff: Minimal Schema Glue
+While the fetching is declarative, you do need to write a small amount of C# code to define the schema structure.
+
+| What you WRITE (The Glue) | What you DON'T Write (The Logic) |
+|---------------------------|----------------------------------|
+| A `Product` record with just an `Id`. | HTTP Clients or API calls to other services. |
+| A property `public Product Product => ...` | Error handling or retry logic. |
+| The `[ID]` attribute to mark the key. | Data mapping or transformation code. |
+
 # Dynamic Fusion Gateway (Nitro) Integration Design
 
 This document outlines the architecture and steps required to upgrade our current static Fusion Gateway to a **Dynamic "Nitro" Gateway** that supports live schema updates without downtime.
