@@ -16,6 +16,14 @@ try {
     $p3 = Start-Process dotnet -ArgumentList "run --project ShippingService --urls=http://localhost:5003" -PassThru -NoNewWindow
     $processes += $p3
 
+    Write-Host "Starting Orders Service..."
+    $p5 = Start-Process dotnet -ArgumentList "run --project OrdersService --urls=http://localhost:5004" -PassThru -NoNewWindow
+    $processes += $p5
+
+    Write-Host "Starting BackOffice Service..."
+    $p6 = Start-Process dotnet -ArgumentList "run --project BackOfficeService" -PassThru -NoNewWindow
+    $processes += $p6
+
     Write-Host "Starting Gateway..."
     $p4 = Start-Process dotnet -ArgumentList "run --project Gateway --urls=http://localhost:5000" -PassThru -NoNewWindow
     $processes += $p4

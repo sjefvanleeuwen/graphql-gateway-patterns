@@ -13,6 +13,10 @@ dotnet run --project ReviewsService -- schema export --output "$PSScriptRoot/sch
 Write-Host "Generating Shipping Schema..."
 dotnet run --project ShippingService -- schema export --output "$PSScriptRoot/schemas/shipping.graphql"
 
+# Generate Orders Schema
+Write-Host "Generating Orders Schema..."
+dotnet run --project OrdersService -- schema export --output "$PSScriptRoot/schemas/orders.graphql"
+
 # Pack Products Subgraph
 dotnet fusion subgraph pack -w . -s schemas/products.graphql -c schemas/products-config.json -p schemas/products.fsp
 
@@ -22,7 +26,10 @@ dotnet fusion subgraph pack -w . -s schemas/reviews.graphql -c schemas/reviews-c
 # Pack Shipping Subgraph
 dotnet fusion subgraph pack -w . -s schemas/shipping.graphql -c schemas/shipping-config.json -p schemas/shipping.fsp
 
+# Pack Orders Subgraph
+dotnet fusion subgraph pack -w . -s schemas/orders.graphql -c schemas/orders-config.json -p schemas/orders.fsp
+
 # Compose Gateway
-dotnet fusion compose -p Gateway/gateway.fgp -s schemas/products.fsp -s schemas/reviews.fsp -s schemas/shipping.fsp
+dotnet fusion compose -p Gateway/gateway.fgp -s schemas/products.fsp -s schemas/reviews.fsp -s schemas/shipping.fsp -s schemas/orders.fsp
 
 Write-Host "Gateway configuration generated at Gateway/gateway.fgp"
