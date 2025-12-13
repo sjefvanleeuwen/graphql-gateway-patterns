@@ -1,0 +1,31 @@
+name: graphql-gateway
+services:
+  gateway:
+    project: src/Gateway
+    host: containerapp
+    language: dotnet
+  products:
+    project: src/ProductsService
+    host: containerapp
+    language: dotnet
+  reviews:
+    project: src/ReviewsService
+    host: containerapp
+    language: dotnet
+  shipping:
+    project: src/ShippingService
+    host: containerapp
+    language: dotnet
+  orders:
+    project: src/OrdersService
+    host: containerapp
+    language: dotnet
+  backoffice:
+    project: src/BackOfficeService
+    host: containerapp
+    language: dotnet
+  frontend:
+    project: frontend
+    host: containerapp
+    language: js
+

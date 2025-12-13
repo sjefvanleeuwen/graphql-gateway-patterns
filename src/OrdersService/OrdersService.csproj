@@ -12,6 +12,7 @@
     <PackageReference Include="HotChocolate.Data" Version="15.1.11" />
     <PackageReference Include="HotChocolate.Subscriptions" Version="15.1.11" />
     <PackageReference Include="WolverineFx" Version="5.7.1" />
+    <PackageReference Include="WolverineFx.AzureServiceBus" Version="5.7.1" />
   </ItemGroup>
 
   <ItemGroup>

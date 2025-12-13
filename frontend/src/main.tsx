@@ -7,12 +7,18 @@ import { getMainDefinition } from '@apollo/client/utilities';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 
+// @ts-ignore
+const env = window.env || {
+  GRAPHQL_HTTP: 'http://localhost:5000/graphql',
+  GRAPHQL_WS: 'ws://localhost:5000/graphql'
+};
+
 const httpLink = new HttpLink({
-  uri: 'http://localhost:5000/graphql',
+  uri: env.GRAPHQL_HTTP,
 });
 
 const wsLink = new GraphQLWsLink(createClient({
-  url: 'ws://localhost:5000/graphql',
+  url: env.GRAPHQL_WS,
 }));
 
 const splitLink = split(

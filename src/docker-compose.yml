@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  gateway:
+    image: gateway
+    build:
+      context: .
+      dockerfile: Gateway/Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+    depends_on:
+      - products
+      - reviews
+      - shipping
+      - orders
+
+  products:
+    image: products
+    build:
+      context: .
+      dockerfile: ProductsService/Dockerfile
+    ports:
+      - "5001:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+
+  reviews:
+    image: reviews
+    build:
+      context: .
+      dockerfile: ReviewsService/Dockerfile
+    ports:
+      - "5002:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+
+  shipping:
+    image: shipping
+    build:
+      context: .
+      dockerfile: ShippingService/Dockerfile
+    ports:
+      - "5003:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+
+  orders:
+    image: orders
+    build:
+      context: .
+      dockerfile: OrdersService/Dockerfile
+    ports:
+      - "5004:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__messaging= # Empty triggers TCP fallback in Wolverine
+      - Wolverine__BackOfficeHost=backoffice
+    # Expose TCP ports for Wolverine if needed, but internal Docker network handles it
+    # Wolverine TCP defaults: 5555, 5556
+
+  backoffice:
+    image: backoffice
+    build:
+      context: .
+      dockerfile: BackOfficeService/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__messaging= # Empty triggers TCP fallback
+      - Wolverine__OrdersHost=orders
+    depends_on:
+      - orders
+
+  frontend:
+    image: frontend
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "4999:80"
+    environment:
+      - GRAPHQL_HTTP=http://localhost:5000/graphql
+      - GRAPHQL_WS=ws://localhost:5000/graphql
+

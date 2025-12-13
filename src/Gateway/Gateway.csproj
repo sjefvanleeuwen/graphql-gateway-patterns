@@ -11,4 +11,9 @@
     <PackageReference Include="HotChocolate.Fusion" Version="15.1.11" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="gateway.fgp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 </Project>
