@@ -60,10 +60,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__messaging= # Empty triggers TCP fallback in Wolverine
-      - Wolverine__BackOfficeHost=backoffice
-    # Expose TCP ports for Wolverine if needed, but internal Docker network handles it
-    # Wolverine TCP defaults: 5555, 5556
+      - ConnectionStrings__postgres=Host=postgres;Port=5432;Database=orders;Username=postgres;Password=postgres
+    depends_on:
+      - postgres
 
   backoffice:
     image: backoffice
@@ -72,10 +71,20 @@ services:
       dockerfile: BackOfficeService/Dockerfile
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__messaging= # Empty triggers TCP fallback
-      - Wolverine__OrdersHost=orders
+      - ConnectionStrings__postgres=Host=postgres;Port=5432;Database=orders;Username=postgres;Password=postgres
     depends_on:
+      - postgres
       - orders
+
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=orders
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   frontend:
     image: frontend
@@ -87,4 +96,7 @@ services:
     environment:
       - GRAPHQL_HTTP=http://localhost:5000/graphql
       - GRAPHQL_WS=ws://localhost:5000/graphql
+
+volumes:
+  postgres_data:
 

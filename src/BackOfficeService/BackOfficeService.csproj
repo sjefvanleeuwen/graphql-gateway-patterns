@@ -8,8 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Marten" Version="8.16.4" />
     <PackageReference Include="WolverineFx" Version="5.7.1" />
-    <PackageReference Include="WolverineFx.AzureServiceBus" Version="5.7.1" />
+    <PackageReference Include="WolverineFx.Marten" Version="5.7.1" />
+    <PackageReference Include="WolverineFx.Postgresql" Version="5.7.1" />
   </ItemGroup>
 
   <ItemGroup>

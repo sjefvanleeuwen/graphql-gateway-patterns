@@ -1,29 +1,25 @@
 using Wolverine;
-using Wolverine.Transports.Tcp;
-using Wolverine.AzureServiceBus;
+using Wolverine.Marten;
+using Wolverine.Postgresql;
+using Wolverine.Postgresql.Transport;
+using Marten;
 
 var builder = Host.CreateApplicationBuilder(args);
 
+var connectionString = builder.Configuration.GetConnectionString("postgres");
+
+builder.Services.AddMarten(opts =>
+{
+    opts.Connection(connectionString);
+});
+
 builder.UseWolverine(opts =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("messaging");
+    opts.UsePostgresqlPersistenceAndTransport(connectionString, schema: "transport")
+        .AutoProvision();
 
-    if (!string.IsNullOrEmpty(connectionString))
-    {
-        // Cloud Mode: Azure Service Bus
-        opts.UseAzureServiceBus(connectionString).AutoProvision();
-        opts.ListenToAzureServiceBusQueue("orders");
-    }
-    else
-    {
-        // Local Mode: TCP
-        var ordersHost = builder.Configuration["Wolverine:OrdersHost"] ?? "localhost";
-
-        // Listen on all interfaces (0.0.0.0)
-        opts.ListenForMessagesFrom(new Uri("tcp://0.0.0.0:5556"));
-
-        opts.PublishMessage<Shared.OrderProcessed>().To(new Uri($"tcp://{ordersHost}:5555"));
-    }
+    opts.ListenToPostgresqlQueue("orders");
+    opts.PublishMessage<Shared.OrderProcessed>().ToPostgresqlQueue("notifications");
 });
 
 var host = builder.Build();

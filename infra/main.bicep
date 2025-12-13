@@ -18,6 +18,7 @@ var abbrs = {
   containerApps: 'ca-'
   userAssignedIdentities: 'id-'
   containerRegistry: 'cr-'
+  dBforPostgreSQLFlexibleServers: 'psql-'
 }
 
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))

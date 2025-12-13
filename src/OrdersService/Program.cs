@@ -1,37 +1,31 @@
 using OrdersService;
 using OrdersService.Data;
 using Wolverine;
-using Wolverine.Transports.Tcp;
-using Wolverine.AzureServiceBus;
+using Wolverine.Marten;
+using Wolverine.Postgresql;
+using Marten;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddSingleton<OrderRepository>();
 
+var connectionString = builder.Configuration.GetConnectionString("postgres");
+
+// Add Marten
+builder.Services.AddMarten(opts =>
+{
+    opts.Connection(connectionString);
+});
+
 // Add Wolverine
 builder.Host.UseWolverine(opts =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("messaging");
-    
-    if (!string.IsNullOrEmpty(connectionString))
-    {
-        // Cloud Mode: Azure Service Bus
-        opts.UseAzureServiceBus(connectionString).AutoProvision();
-        opts.PublishMessage<Shared.OrderPlaced>().ToAzureServiceBusQueue("orders");
-    }
-    else
-    {
-        // Local Mode: TCP
-        // In Docker, "localhost" refers to the container itself.
-        // We need to send messages to the "backoffice" container.
-        var backofficeHost = builder.Configuration["Wolverine:BackOfficeHost"] ?? "localhost";
+    opts.UsePostgresqlPersistenceAndTransport(connectionString, schema: "transport")
+        .AutoProvision();
         
-        // Listen on all interfaces (0.0.0.0)
-        opts.ListenForMessagesFrom(new Uri("tcp://0.0.0.0:5555"));
-
-        opts.PublishMessage<Shared.OrderPlaced>().To(new Uri($"tcp://{backofficeHost}:5556"));
-    }
+    opts.PublishMessage<Shared.OrderPlaced>().ToPostgresqlQueue("orders");
+    opts.ListenToPostgresqlQueue("notifications");
 });
 
 builder.Services

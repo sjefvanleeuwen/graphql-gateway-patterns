@@ -22,6 +22,67 @@ resource acr 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
   }
 }
 
+resource vnet 'Microsoft.Network/virtualNetworks@2022-11-01' = {
+  name: 'vnet-${resourceToken}'
+  location: location
+  tags: tags
+  properties: {
+    addressSpace: {
+      addressPrefixes: [
+        '10.0.0.0/16'
+      ]
+    }
+    subnets: [
+      {
+        name: 'aca-subnet'
+        properties: {
+          addressPrefix: '10.0.0.0/23'
+          delegations: [
+            {
+              name: 'Microsoft.App/environments'
+              properties: {
+                serviceName: 'Microsoft.App/environments'
+              }
+            }
+          ]
+        }
+      }
+      {
+        name: 'psql-subnet'
+        properties: {
+          addressPrefix: '10.0.2.0/24'
+          delegations: [
+            {
+              name: 'Microsoft.DBforPostgreSQL/flexibleServers'
+              properties: {
+                serviceName: 'Microsoft.DBforPostgreSQL/flexibleServers'
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+
+resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'private.postgres.database.azure.com'
+  location: 'global'
+  tags: tags
+}
+
+resource privateDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: privateDnsZone
+  name: 'postgres-link-${resourceToken}'
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.id
+    }
+  }
+}
+
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: '${abbrs.operationalInsightsWorkspaces}${resourceToken}'
   location: location
@@ -46,37 +107,42 @@ resource env 'Microsoft.App/managedEnvironments@2023-05-01' = {
         sharedKey: logAnalytics.listKeys().primarySharedKey
       }
     }
+    vnetConfiguration: {
+      infrastructureSubnetId: vnet.properties.subnets[0].id
+    }
   }
 }
 
-resource sb 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
-  name: '${abbrs.serviceBusNamespaces}${resourceToken}'
+resource postgres 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
+  name: '${abbrs.dBforPostgreSQLFlexibleServers}${resourceToken}'
   location: location
   tags: tags
   sku: {
-    name: 'Standard'
+    name: 'Standard_B1ms'
+    tier: 'Burstable'
   }
-}
-
-resource sbQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
-  parent: sb
-  name: 'orders'
-}
-
-// Role Assignment for Identity to access Service Bus (Data Owner)
-resource sbRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(sb.id, identity.id, 'Azure Service Bus Data Owner')
-  scope: sb
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '090c5cfd-751d-490a-894a-3ce6f1109419')
-    principalId: identity.properties.principalId
-    principalType: 'ServicePrincipal'
+    version: '15'
+    administratorLogin: 'postgres'
+    administratorLoginPassword: 'Password123!'
+    storage: {
+      storageSizeGB: 32
+    }
+    backup: {
+      backupRetentionDays: 7
+      geoRedundantBackup: 'Disabled'
+    }
+    network: {
+      delegatedSubnetResourceId: vnet.properties.subnets[1].id
+      privateDnsZoneArmResourceId: privateDnsZone.id
+    }
   }
+  dependsOn: [
+    privateDnsZoneLink
+  ]
 }
 
-// Connection String for Wolverine (if not using Managed Identity directly, but Wolverine supports MI? 
-// The code uses connection string. Let's provide it.)
-var sbConnectionString = 'Endpoint=sb://${sb.name}.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=${sb.listKeys().primaryKey}'
+var postgresConnectionString = 'Host=${postgres.properties.fullyQualifiedDomainName};Port=5432;Database=postgres;Username=postgres;Password=Password123!'
 
 module gateway 'app.bicep' = {
   name: 'gateway'
@@ -166,8 +232,8 @@ module orders 'app.bicep' = {
         value: 'Development'
       }
       {
-        name: 'ConnectionStrings__messaging'
-        value: sbConnectionString
+        name: 'ConnectionStrings__postgres'
+        value: postgresConnectionString
       }
     ]
   }
@@ -188,8 +254,8 @@ module backoffice 'app.bicep' = {
         value: 'Development'
       }
       {
-        name: 'ConnectionStrings__messaging'
-        value: sbConnectionString
+        name: 'ConnectionStrings__postgres'
+        value: postgresConnectionString
       }
     ]
   }
