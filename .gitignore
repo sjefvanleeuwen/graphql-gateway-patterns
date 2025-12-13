@@ -1,0 +1,27 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.launchsettings.json
+
+# VS Code
+.vscode/
+
+# Fusion Artifacts
+*.fsp
+*.fgp
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS generated files
+.DS_Store
+Thumbs.db
