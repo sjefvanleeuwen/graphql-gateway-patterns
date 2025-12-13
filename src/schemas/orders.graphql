@@ -14,6 +14,7 @@ type Order {
   quantity: Int!
   totalPrice: Float!
   status: String!
+  product: Product!
 }
 
 "A connection to a list of items."
@@ -46,6 +47,10 @@ type PageInfo {
   endCursor: String
 }
 
+type Product {
+  id: ID!
+}
+
 type Query {
   orders("Returns the first _n_ elements from the list." first: Int "Returns the elements in the list that come after the specified cursor." after: String "Returns the last _n_ elements from the list." last: Int "Returns the elements in the list that come before the specified cursor." before: String where: OrderFilterInput @cost(weight: "10") order: [OrderSortInput!] @cost(weight: "10")): OrdersConnection @listSize(assumedSize: 50, slicingArguments: [ "first", "last" ], slicingArgumentDefaultValue: 10, sizedFields: [ "edges", "nodes" ], requireOneSlicingArgument: false)
 }
@@ -67,6 +72,13 @@ input FloatOperationFilterInput {
   nlt: Float @cost(weight: "10")
   lte: Float @cost(weight: "10")
   nlte: Float @cost(weight: "10")
+}
+
+input IdOperationFilterInput {
+  eq: ID @cost(weight: "10")
+  neq: ID @cost(weight: "10")
+  in: [ID] @cost(weight: "10")
+  nin: [ID] @cost(weight: "10")
 }
 
 input IntOperationFilterInput {
@@ -92,6 +104,7 @@ input OrderFilterInput {
   quantity: IntOperationFilterInput
   totalPrice: FloatOperationFilterInput
   status: StringOperationFilterInput
+  product: ProductFilterInput
 }
 
 input OrderSortInput {
@@ -100,6 +113,17 @@ input OrderSortInput {
   quantity: SortEnumType @cost(weight: "10")
   totalPrice: SortEnumType @cost(weight: "10")
   status: SortEnumType @cost(weight: "10")
+  product: ProductSortInput @cost(weight: "10")
+}
+
+input ProductFilterInput {
+  and: [ProductFilterInput!]
+  or: [ProductFilterInput!]
+  id: IdOperationFilterInput
+}
+
+input ProductSortInput {
+  id: SortEnumType @cost(weight: "10")
 }
 
 input StringOperationFilterInput {

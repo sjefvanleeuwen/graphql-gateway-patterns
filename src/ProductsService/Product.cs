@@ -1,3 +1,5 @@
+using HotChocolate.Types;
+
 namespace ProductsService;
 
-public record Product(string Id, string Name, double Price, string Description);
+public record Product([property: ID] string Id, string Name, double Price, string Description);

@@ -315,6 +315,78 @@ query FindFastShippingProducts {
 
 # Dynamic Fusion Gateway (Nitro) Integration Design
 
+---
+
+## 🔗 Distributed Data Graph (Type Merging)
+
+One of the most powerful features of Hot Chocolate Fusion is **Type Merging**. This allows you to define a type (like `Product`) in multiple subgraphs and have the Gateway automatically merge them into a single, unified type.
+
+This is how we allow querying `Product` details directly from an `Order`, even though the `OrdersService` database only stores the `ProductId`.
+
+### How it works
+
+1.  **The Source of Truth (`ProductsService`)**:
+    The `ProductsService` defines the full `Product` type and provides a **Node Resolver** to look it up by ID.
+    ```csharp
+    // ProductsService/Product.cs
+    public record Product([property: ID] string Id, string Name, double Price, string Description);
+
+    // ProductsService/Query.cs
+    [NodeResolver]
+    public Product? GetProduct(string id) => _products.FirstOrDefault(p => p.Id == id);
+    ```
+
+2.  **The Reference (`OrdersService`)**:
+    The `OrdersService` defines a "stub" `Product` type that only contains the `Id`. It exposes this as a property on the `Order`.
+    ```csharp
+    // OrdersService/Models/Order.cs
+    public record Order(string Id, string ProductId, ...)
+    {
+        // 🔗 This creates the link!
+        public Product Product => new Product(ProductId);
+    }
+
+    // OrdersService/Models/Product.cs
+    public record Product([property: ID] string Id);
+    ```
+
+3.  **The Fusion Magic**:
+    When you query `order { product { name } }`:
+    1.  The Gateway fetches the `Order` from `OrdersService`.
+    2.  It gets the `Product` object (which only has an `Id`).
+    3.  It sees that `Product` is also defined in `ProductsService` and has a `name` field.
+    4.  It automatically calls the `ProductsService`'s Node Resolver using that `Id` to fetch the `name`.
+
+### Example Query
+
+```graphql
+query GetOrdersWithProductDetails {
+  orders {
+    nodes {
+      id
+      status
+      quantity
+      
+      # 🔗 Cross-service join happens here!
+      product {
+        name
+        price
+        description
+        
+        # You can even go deeper!
+        reviews {
+          nodes {
+            starRating
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+# Dynamic Fusion Gateway (Nitro) Integration Design
+
 This document outlines the architecture and steps required to upgrade our current static Fusion Gateway to a **Dynamic "Nitro" Gateway** that supports live schema updates without downtime.
 
 ## 🎯 Objective

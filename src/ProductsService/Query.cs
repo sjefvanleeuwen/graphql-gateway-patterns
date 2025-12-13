@@ -1,3 +1,5 @@
+using HotChocolate.Types.Relay;
+
 namespace ProductsService;
 
 public class Query
@@ -15,6 +17,7 @@ public class Query
             )).ToList();
     }
 
+    [NodeResolver]
     public Product? GetProduct(string id)
     {
         return _products.FirstOrDefault(p => p.Id == id);
