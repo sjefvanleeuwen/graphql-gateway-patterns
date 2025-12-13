@@ -313,20 +313,34 @@ query FindFastShippingProducts {
 }
 ```
 
-# Dynamic Fusion Gateway (Nitro) Integration Design
+## 🔗 Declarative Type Merging
 
----
+This solution demonstrates **Declarative Type Merging**, allowing you to query across service boundaries without tight coupling.
 
-## 🔗 Distributed Data Graph (Type Merging)
+### Example: Orders & Products
 
-One of the most powerful features of Hot Chocolate Fusion is **Type Merging**. This allows you to define a type (like `Product`) in multiple subgraphs and have the Gateway automatically merge them into a single, unified type.
+The `OrdersService` has no physical dependency on `ProductsService`. However, we can query product details through an order:
 
-This is how we allow querying `Product` details directly from an `Order`, even though the `OrdersService` database only stores the `ProductId`.
+```graphql
+query {
+  orders {
+    nodes {
+      quantity
+      product {
+        name
+        description
+      }
+    }
+  }
+}
+```
 
-### How it works
+### How it is Configured
 
-1.  **The Source of Truth (`ProductsService`)**:
-    The `ProductsService` defines the full `Product` type and provides a **Node Resolver** to look it up by ID.
+The configuration is purely declarative and based on shared types:
+
+1.  **Products Service (The Source)**:
+    Defines the full `Product` entity and registers it as a **Node** (Global Object Identification).
     ```csharp
     // ProductsService/Product.cs
     public record Product([property: ID] string Id, string Name, double Price, string Description);
@@ -336,8 +350,8 @@ This is how we allow querying `Product` details directly from an `Order`, even t
     public Product? GetProduct(string id) => _products.FirstOrDefault(p => p.Id == id);
     ```
 
-2.  **The Reference (`OrdersService`)**:
-    The `OrdersService` defines a "stub" `Product` type that only contains the `Id`. It exposes this as a property on the `Order`.
+2.  **Orders Service (The Reference)**:
+    Defines a lightweight "stub" `Product` type containing only the `Id`. It exposes this as a property on the `Order`.
     ```csharp
     // OrdersService/Models/Order.cs
     public record Order(string Id, string ProductId, ...)
@@ -350,40 +364,15 @@ This is how we allow querying `Product` details directly from an `Order`, even t
     public record Product([property: ID] string Id);
     ```
 
-3.  **The Fusion Magic**:
-    When you query `order { product { name } }`:
-    1.  The Gateway fetches the `Order` from `OrdersService`.
-    2.  It gets the `Product` object (which only has an `Id`).
-    3.  It sees that `Product` is also defined in `ProductsService` and has a `name` field.
-    4.  It automatically calls the `ProductsService`'s Node Resolver using that `Id` to fetch the `name`.
+3.  **Fusion Gateway**:
+    Automatically merges these two types into a single `Product` type. When you query `order.product.name`, the Gateway:
+    1.  Fetches the `Order` (getting the `Product.Id`).
+    2.  Resolves the `Product` fields (`name`, `description`) from `ProductsService` using the ID.
 
-### Example Query
-
-```graphql
-query GetOrdersWithProductDetails {
-  orders {
-    nodes {
-      id
-      status
-      quantity
-      
-      # 🔗 Cross-service join happens here!
-      product {
-        name
-        price
-        description
-        
-        # You can even go deeper!
-        reviews {
-          nodes {
-            starRating
-          }
-        }
-      }
-    }
-  }
-}
-```
+### Why this is "Declarative"
+*   **No Manual Resolvers**: `OrdersService` does not write code to call `ProductsService`.
+*   **No Gateway Config**: You don't need to write manual mapping rules in the Gateway.
+*   **Decoupled**: `OrdersService` only knows about "Products" as an abstract concept (an ID), not as a concrete service.
 
 # Dynamic Fusion Gateway (Nitro) Integration Design
 

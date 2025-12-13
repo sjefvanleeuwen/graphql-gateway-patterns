@@ -1,3 +1,5 @@
+using HotChocolate.Types;
+
 namespace ReviewsService;
 
 public class Query
@@ -6,28 +8,20 @@ public class Query
 
     public Query()
     {
-        _reviews = new List<Review>();
-        var random = new Random(42); // Seed for consistency
-
-        for (int i = 1; i <= 50; i++)
+        _reviews = new List<Review>
         {
-            var reviewCount = random.Next(1, 6);
-            for (int j = 0; j < reviewCount; j++)
-            {
-                _reviews.Add(new Review(
-                    $"{i}-{j}", 
-                    i.ToString(), 
-                    $"Review {j + 1} for Product {i}. This is some sample content.", 
-                    random.Next(1, 6)
-                ));
-            }
-        }
+            new Review("1", "1", "Love it!", 5),
+            new Review("2", "1", "It's okay.", 3),
+            new Review("3", "2", "Could be better.", 2),
+            new Review("4", "2", "Great value.", 4),
+            new Review("5", "3", "Not what I expected.", 1)
+        };
     }
 
     [UsePaging]
     [UseFiltering]
     [UseSorting]
     public IEnumerable<Review> GetReviews() => _reviews;
-    
+
     public Review? GetReview(string id) => _reviews.FirstOrDefault(r => r.Id == id);
 }
