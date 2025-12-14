@@ -31,7 +31,10 @@ function Ensure-ContainerApp {
     [Parameter(Mandatory = $true)][string]$RegistryUsername,
     [Parameter(Mandatory = $true)][string]$RegistryPassword,
     [string[]]$Secrets,
-    [string[]]$EnvVars
+    [string[]]$EnvVars,
+    [string]$HealthProbeType = 'none',  # 'none', 'http', 'tcp'
+    [string]$HealthProbePort = '',
+    [string]$HealthProbePath = ''
   )
 
   $existsCount = az containerapp list -g $ResourceGroup --query "[?name=='$Name'] | length(@)" -o tsv
@@ -58,6 +61,19 @@ function Ensure-ContainerApp {
 
     if ($Secrets -and $Secrets.Count -gt 0) { $args += @('--secrets') + $Secrets }
     if ($EnvVars -and $EnvVars.Count -gt 0) { $args += @('--env-vars') + $EnvVars }
+
+    # Add health probes
+    if ($HealthProbeType -eq 'http' -and -not [string]::IsNullOrWhiteSpace($HealthProbePath)) {
+      $args += @(
+        '--health-probe-type', 'liveness',
+        '--health-probe-protocol', 'http',
+        '--health-probe-method', 'GET',
+        '--health-probe-port', $HealthProbePort,
+        '--health-probe-path', $HealthProbePath,
+        '--health-probe-interval', '10',
+        '--health-probe-timeout', '5'
+      )
+    }
 
     az @args | Out-Host
     if ($LASTEXITCODE -ne 0) { throw "az containerapp create failed for $Name" }
@@ -155,9 +171,9 @@ function ImageRef([string]$serviceName) {
 }
 
 # Internal services
-Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'products'  -Image (ImageRef 'products')  -Ingress 'internal' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword
-Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'reviews'   -Image (ImageRef 'reviews')   -Ingress 'internal' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword
-Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'shipping'  -Image (ImageRef 'shipping')  -Ingress 'internal' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword
+Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'products'  -Image (ImageRef 'products')  -Ingress 'internal' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword -HealthProbeType 'http' -HealthProbePort 8080 -HealthProbePath '/graphql'
+Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'reviews'   -Image (ImageRef 'reviews')   -Ingress 'internal' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword -HealthProbeType 'http' -HealthProbePort 8080 -HealthProbePath '/graphql'
+Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'shipping'  -Image (ImageRef 'shipping')  -Ingress 'internal' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword -HealthProbeType 'http' -HealthProbePort 8080 -HealthProbePath '/graphql'
 
 # Orders + BackOffice need Postgres
 $ordersSecrets = @()
@@ -173,7 +189,7 @@ Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environm
 Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'backoffice' -Image (ImageRef 'backoffice') -Ingress 'internal' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword -Secrets $ordersSecrets -EnvVars $ordersEnv
 
 # External apps (create frontend first so we can set Gateway CORS correctly)
-Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'frontend'  -Image (ImageRef 'frontend')  -Ingress 'external' -TargetPort 80   -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword
+Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'frontend'  -Image (ImageRef 'frontend')  -Ingress 'external' -TargetPort 80   -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword -HealthProbeType 'http' -HealthProbePort 80 -HealthProbePath '/'
 
 $frontendFqdn = az containerapp show -g $resourceGroupName -n frontend --query properties.configuration.ingress.fqdn -o tsv
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($frontendFqdn)) { throw "Failed to fetch frontend FQDN" }
@@ -189,7 +205,7 @@ $gatewayEnv = @(
   "CORS_ALLOWED_ORIGINS=$gatewayCorsOrigins"
 )
 
-Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'gateway'   -Image (ImageRef 'gateway')   -Ingress 'external' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword -EnvVars $gatewayEnv
+Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'gateway'   -Image (ImageRef 'gateway')   -Ingress 'external' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword -EnvVars $gatewayEnv -HealthProbeType 'http' -HealthProbePort 8080 -HealthProbePath '/graphql'
 
 $gatewayFqdn = az containerapp show -g $resourceGroupName -n gateway --query properties.configuration.ingress.fqdn -o tsv
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($gatewayFqdn)) { throw "Failed to fetch gateway FQDN" }
