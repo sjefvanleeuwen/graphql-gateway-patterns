@@ -1,0 +1,6 @@
+﻿{
+    "http":  {
+                 "baseAddress":  "https://reviews.internal.blackstone-454a94c9.northeurope.azurecontainerapps.io/graphql"
+             },
+    "subgraph":  "Reviews"
+}
