@@ -167,7 +167,7 @@ if (-not $SkipPostgres) {
 }
 
 function ImageRef([string]$serviceName) {
-  return "$acrLoginServer/$RepositoryPrefix/${serviceName}:$ImageTag"
+  return ("$acrLoginServer/$RepositoryPrefix/$serviceName" + ':' + $ImageTag)
 }
 
 # Internal services
@@ -188,6 +188,49 @@ if ($postgresConnectionString) {
 Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'orders'     -Image (ImageRef 'orders')     -Ingress 'internal' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword -Secrets $ordersSecrets -EnvVars $ordersEnv
 Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'backoffice' -Image (ImageRef 'backoffice') -Ingress 'internal' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword -Secrets $ordersSecrets -EnvVars $ordersEnv
 
+# Nitro Schema API (internal) is the source of truth + multicast WebSocket hub for gateway.fgp
+$nitroAdminTokenPlain = $null
+try {
+  if (Test-Path $ParametersFile) {
+    $params = (Get-Content -Raw $ParametersFile | ConvertFrom-Json)
+    if ($params.parameters.nitroAdminToken.value) { $nitroAdminTokenPlain = [string]$params.parameters.nitroAdminToken.value }
+  }
+}
+catch {
+  Write-Warning "Could not parse ParametersFile '$ParametersFile' for nitroAdminToken."
+}
+
+if ([string]::IsNullOrWhiteSpace($nitroAdminTokenPlain)) {
+  if (-not [string]::IsNullOrWhiteSpace($env:NITRO_ADMIN_TOKEN)) {
+    $nitroAdminTokenPlain = [string]$env:NITRO_ADMIN_TOKEN
+  }
+}
+
+if ([string]::IsNullOrWhiteSpace($nitroAdminTokenPlain)) {
+  $secureNitro = Read-Host "Enter Nitro admin token (used to publish gateway.fgp)" -AsSecureString
+  $nitroAdminTokenPlain = Get-PlainTextFromSecureString -Secure $secureNitro
+}
+
+$nitroSecrets = @()
+$nitroEnv = @()
+if ($postgresConnectionString) {
+  $nitroSecrets = @(
+    "postgres-conn=$postgresConnectionString",
+    "nitro-admin-token=$nitroAdminTokenPlain"
+  )
+  $nitroEnv = @(
+    'ConnectionStrings__postgres=secretref:postgres-conn',
+    'NITRO_ADMIN_TOKEN=secretref:nitro-admin-token'
+  )
+} else {
+  Write-Warning "Postgres connection string not set; nitro-schema-api will fail to start."
+}
+
+Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'nitro-schema-api' -Image (ImageRef 'nitro-schema-api') -Ingress 'internal' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword -Secrets $nitroSecrets -EnvVars $nitroEnv
+
+$nitroFqdn = az containerapp show -g $resourceGroupName -n nitro-schema-api --query properties.configuration.ingress.fqdn -o tsv
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($nitroFqdn)) { throw "Failed to fetch nitro-schema-api FQDN" }
+
 # External apps (create frontend first so we can set Gateway CORS correctly)
 Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'frontend'  -Image (ImageRef 'frontend')  -Ingress 'external' -TargetPort 80   -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword -HealthProbeType 'http' -HealthProbePort 80 -HealthProbePath '/'
 
@@ -202,10 +245,16 @@ $gatewayCorsOrigins = @(
 ) -join ','
 
 $gatewayEnv = @(
-  "CORS_ALLOWED_ORIGINS=$gatewayCorsOrigins"
+  "CORS_ALLOWED_ORIGINS=$gatewayCorsOrigins",
+  "NITRO_SCHEMA_WS=ws://$nitroFqdn/ws",
+  'NITRO_ADMIN_TOKEN=secretref:nitro-admin-token'
 )
 
-Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'gateway'   -Image (ImageRef 'gateway')   -Ingress 'external' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword -EnvVars $gatewayEnv -HealthProbeType 'http' -HealthProbePort 8080 -HealthProbePath '/graphql'
+$gatewaySecrets = @(
+  "nitro-admin-token=$nitroAdminTokenPlain"
+)
+
+Ensure-ContainerApp -ResourceGroup $resourceGroupName -EnvironmentName $environmentName -Name 'gateway'   -Image (ImageRef 'gateway')   -Ingress 'external' -TargetPort 8080 -RegistryServer $acrLoginServer -RegistryUsername $acrUsername -RegistryPassword $acrPassword -Secrets $gatewaySecrets -EnvVars $gatewayEnv -HealthProbeType 'http' -HealthProbePort 8080 -HealthProbePath '/graphql'
 
 $gatewayFqdn = az containerapp show -g $resourceGroupName -n gateway --query properties.configuration.ingress.fqdn -o tsv
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($gatewayFqdn)) { throw "Failed to fetch gateway FQDN" }

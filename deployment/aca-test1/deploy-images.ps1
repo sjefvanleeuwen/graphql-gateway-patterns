@@ -91,6 +91,7 @@ function BuildAndPushFrontend {
 }
 
 # .NET services (Dockerfiles expect src/ as build context)
+BuildAndPushDotnetService -ServiceName 'nitro-schema-api' -DockerfileRelativeToSrc 'NitroSchemaApi/Dockerfile'
 BuildAndPushDotnetService -ServiceName 'gateway' -DockerfileRelativeToSrc 'Gateway/Dockerfile'
 BuildAndPushDotnetService -ServiceName 'products' -DockerfileRelativeToSrc 'ProductsService/Dockerfile'
 BuildAndPushDotnetService -ServiceName 'reviews' -DockerfileRelativeToSrc 'ReviewsService/Dockerfile'

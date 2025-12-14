@@ -43,11 +43,15 @@ builder.Services.AddCors(options =>
 builder.Services.AddHttpClient();
 
 builder.Services.AddHostedService<Gateway.FusionReloadService>();
+builder.Services.AddSingleton<Gateway.NitroSchemaClientService>();
+builder.Services.AddSingleton<Gateway.INitroSchemaPublisher>(sp => sp.GetRequiredService<Gateway.NitroSchemaClientService>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<Gateway.NitroSchemaClientService>());
 
 // Register the "Status" subgraph schema
 builder.Services
     .AddGraphQLServer("status")
     .AddQueryType(d => d.Name("Query").Field("status").Resolve("Running"))
+    .AddMutationType<Gateway.GatewayMutations>()
     .AddSubscriptionType<Gateway.GatewaySubscriptions>()
     .AddInMemorySubscriptions();
 

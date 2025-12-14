@@ -110,6 +110,52 @@ Every service implements the full suite of Hot Chocolate Data capabilities:
 *   **Sorting**: `[UseSorting]` allows multi-field ordering (e.g., `order: { price: DESC }`).
 *   **Pagination**: `[UsePaging]` implements standard Relay-style cursor pagination.
 
+### 4. Live Schema Updates (Nitro)
+
+The solution includes **Nitro Schema API**, an internal WebSocket-based service that enables **zero-downtime gateway schema updates** without container redeployment.
+
+```mermaid
+flowchart LR
+    Operator["Operator / CI"]
+    
+    subgraph Gateway Replicas
+        GW1["Gateway 1"]
+        GW2["Gateway 2"]
+        GWN["Gateway N"]
+    end
+    
+    subgraph Internal
+        Nitro["Nitro Schema API"]
+        PG[("PostgreSQL")]
+    end
+    
+    Operator -->|"compose-fgp.ps1"| GW1
+    GW1 -->|"WebSocket PUBLISH"| Nitro
+    Nitro -->|"Store"| PG
+    Nitro -->|"Broadcast"| GW1
+    Nitro -->|"Broadcast"| GW2
+    Nitro -->|"Broadcast"| GWN
+```
+
+**Key Features:**
+- ✅ No gateway container redeployment for schema changes
+- ✅ All replicas update simultaneously (multicast)
+- ✅ New replicas bootstrap with latest schema on startup
+- ✅ Version tracking and ETag for change detection
+- ✅ Token-based authentication
+
+**Usage:**
+
+```powershell
+# Compose and publish for local Docker Compose
+.\compose-fgp.ps1 -Environment local
+
+# Compose and publish for Azure Container Apps
+.\compose-fgp.ps1 -Environment aca -ResourceGroup alderaan
+```
+
+See [src/NitroSchemaApi/README.md](src/NitroSchemaApi/README.md) for full documentation.
+
 ---
 
 ## 🛠️ Development Workflow

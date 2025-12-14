@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BackOfficeService", "BackOf
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OrdersService", "OrdersService\OrdersService.csproj", "{8E091EF6-6473-452A-9060-1DBABEDAC515}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NitroSchemaApi", "NitroSchemaApi\NitroSchemaApi.csproj", "{1A5E21E2-777A-4B60-9D2E-5C7F5E7AFA11}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -111,6 +113,18 @@ Global
 		{8E091EF6-6473-452A-9060-1DBABEDAC515}.Release|x64.Build.0 = Release|Any CPU
 		{8E091EF6-6473-452A-9060-1DBABEDAC515}.Release|x86.ActiveCfg = Release|Any CPU
 		{8E091EF6-6473-452A-9060-1DBABEDAC515}.Release|x86.Build.0 = Release|Any CPU
+		{1A5E21E2-777A-4B60-9D2E-5C7F5E7AFA11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A5E21E2-777A-4B60-9D2E-5C7F5E7AFA11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A5E21E2-777A-4B60-9D2E-5C7F5E7AFA11}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1A5E21E2-777A-4B60-9D2E-5C7F5E7AFA11}.Debug|x64.Build.0 = Debug|Any CPU
+		{1A5E21E2-777A-4B60-9D2E-5C7F5E7AFA11}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1A5E21E2-777A-4B60-9D2E-5C7F5E7AFA11}.Debug|x86.Build.0 = Debug|Any CPU
+		{1A5E21E2-777A-4B60-9D2E-5C7F5E7AFA11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A5E21E2-777A-4B60-9D2E-5C7F5E7AFA11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A5E21E2-777A-4B60-9D2E-5C7F5E7AFA11}.Release|x64.ActiveCfg = Release|Any CPU
+		{1A5E21E2-777A-4B60-9D2E-5C7F5E7AFA11}.Release|x64.Build.0 = Release|Any CPU
+		{1A5E21E2-777A-4B60-9D2E-5C7F5E7AFA11}.Release|x86.ActiveCfg = Release|Any CPU
+		{1A5E21E2-777A-4B60-9D2E-5C7F5E7AFA11}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
