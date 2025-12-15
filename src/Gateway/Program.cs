@@ -50,7 +50,7 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<Gateway.NitroSchem
 // Register the "Status" subgraph schema
 builder.Services
     .AddGraphQLServer("status")
-    .AddQueryType(d => d.Name("Query").Field("status").Resolve("Running"))
+    .AddQueryType<Gateway.StatusQuery>()
     .AddMutationType<Gateway.GatewayMutations>()
     .AddSubscriptionType<Gateway.GatewaySubscriptions>()
     .AddInMemorySubscriptions();

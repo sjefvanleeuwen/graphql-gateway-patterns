@@ -84,7 +84,7 @@ resource backoffice 'Microsoft.App/containerApps@2024-03-01' = {
       ]
       scale: {
         // Scale to zero when no work, scale up based on queue depth
-        minReplicas: 0
+        minReplicas: 1
         maxReplicas: 3
         rules: [
           // KEDA PostgreSQL scaler - monitors Wolverine incoming_envelopes table
