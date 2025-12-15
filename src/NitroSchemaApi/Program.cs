@@ -405,3 +405,5 @@ static class NitroMessage
     public static string Error(string message)
         => JsonSerializer.Serialize(new { type = "ERROR", message });
 }
+
+public partial class Program { }
