@@ -17,12 +17,22 @@ public class Query
             )).ToList();
     }
 
+    /// <summary>
+    /// Retrieves a single product by its unique identifier.
+    /// </summary>
+    /// <param name="id">The ID of the product.</param>
+    /// <returns>The product if found, otherwise null.</returns>
     [NodeResolver]
     public Product? GetProduct(string id)
     {
         return _products.FirstOrDefault(p => p.Id == id);
     }
 
+    /// <summary>
+    /// Retrieves a catalog of available products.
+    /// Supports pagination, filtering, and sorting to help users find specific items.
+    /// </summary>
+    /// <returns>A list of products.</returns>
     [UsePaging]
     [UseFiltering]
     [UseSorting]

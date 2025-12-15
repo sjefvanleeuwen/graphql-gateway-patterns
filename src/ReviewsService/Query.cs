@@ -18,10 +18,20 @@ public class Query
         };
     }
 
+    /// <summary>
+    /// Retrieves a list of customer reviews.
+    /// Can be filtered by product ID to show reviews for a specific item.
+    /// </summary>
+    /// <returns>A collection of reviews.</returns>
     [UsePaging]
     [UseFiltering]
     [UseSorting]
     public IEnumerable<Review> GetReviews() => _reviews;
 
+    /// <summary>
+    /// Retrieves a specific review by its ID.
+    /// </summary>
+    /// <param name="id">The unique identifier of the review.</param>
+    /// <returns>The review details.</returns>
     public Review? GetReview(string id) => _reviews.FirstOrDefault(r => r.Id == id);
 }

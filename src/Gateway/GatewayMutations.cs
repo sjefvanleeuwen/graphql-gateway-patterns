@@ -6,6 +6,17 @@ namespace Gateway;
 
 public sealed class GatewayMutations
 {
+    /// <summary>
+    /// Publishes a new Fusion Gateway Package (FGP) to the gateway.
+    /// This triggers a hot-reload of the gateway configuration without downtime.
+    /// Requires a valid admin token.
+    /// </summary>
+    /// <param name="fgpBase64">The base64-encoded content of the gateway.fgp file.</param>
+    /// <param name="token">The administrative token for authentication.</param>
+    /// <param name="publisher">The service responsible for distributing the schema.</param>
+    /// <param name="config">Configuration to validate the token.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if the publication was successful.</returns>
     public async Task<bool> PublishGatewayFgp(
         string fgpBase64,
         string token,

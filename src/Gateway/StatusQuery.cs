@@ -5,8 +5,17 @@ namespace Gateway;
 
 public class StatusQuery
 {
+    /// <summary>
+    /// Returns the current operational status of the Gateway.
+    /// </summary>
     public string Status => "Running";
 
+    /// <summary>
+    /// Inspects the currently loaded Fusion Gateway Package (FGP) and returns details about the composed subgraphs.
+    /// Useful for verifying which services are currently part of the federated graph.
+    /// </summary>
+    /// <param name="env">The host environment to locate the FGP file.</param>
+    /// <returns>A list of subgraphs with their names and downstream URLs.</returns>
     public async Task<List<SubgraphInfo>> GetSubgraphs([Service] IHostEnvironment env)
     {
         var path = System.IO.Path.Combine(env.ContentRootPath, "gateway.fgp");

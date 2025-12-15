@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddSingleton<OrderRepository>();
 
-var connectionString = builder.Configuration.GetConnectionString("postgres");
+var connectionString = builder.Configuration.GetConnectionString("postgres") ?? throw new InvalidOperationException("Connection string 'postgres' not found.");
 
 // Add Marten
 builder.Services.AddMarten(opts =>
@@ -21,8 +21,8 @@ builder.Services.AddMarten(opts =>
 // Add Wolverine
 builder.Host.UseWolverine(opts =>
 {
-    opts.UsePostgresqlPersistenceAndTransport(connectionString, schema: "transport")
-        .AutoProvision();
+    opts.PersistMessagesWithPostgresql(connectionString, "transport")
+        .EnableMessageTransport();
         
     opts.PublishMessage<Shared.OrderPlaced>().ToPostgresqlQueue("orders");
     opts.ListenToPostgresqlQueue("notifications");

@@ -2,6 +2,12 @@ namespace ShippingService;
 
 public class Query
 {
+    /// <summary>
+    /// Calculates available shipping options for a specific product.
+    /// Returns estimated costs and delivery times based on the product's characteristics.
+    /// </summary>
+    /// <param name="productId">The ID of the product to ship.</param>
+    /// <returns>A list of shipping methods (e.g., Standard, Express).</returns>
     [UsePaging]
     [UseFiltering]
     [UseSorting]

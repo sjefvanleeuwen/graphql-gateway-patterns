@@ -6,7 +6,7 @@ using Marten;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("postgres");
+var connectionString = builder.Configuration.GetConnectionString("postgres") ?? throw new InvalidOperationException("Connection string 'postgres' not found.");
 
 builder.Services.AddMarten(opts =>
 {
@@ -15,8 +15,8 @@ builder.Services.AddMarten(opts =>
 
 builder.Host.UseWolverine(opts =>
 {
-    opts.UsePostgresqlPersistenceAndTransport(connectionString, schema: "transport")
-        .AutoProvision();
+    opts.PersistMessagesWithPostgresql(connectionString, "transport")
+        .EnableMessageTransport();
 
     opts.ListenToPostgresqlQueue("orders");
     opts.PublishMessage<Shared.OrderProcessed>().ToPostgresqlQueue("notifications");
