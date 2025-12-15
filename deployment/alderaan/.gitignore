@@ -1,0 +1,21 @@
+# Azure Developer CLI (azd) artifacts
+.azure/
+
+# Environment files with secrets
+*.env
+.env.*
+
+# Local parameter overrides
+*.local.json
+*.local.parameters.json
+
+# Terraform state (if migrating)
+*.tfstate
+*.tfstate.*
+
+# Compiled Bicep
+*.json.bak
+
+# OS files
+.DS_Store
+Thumbs.db

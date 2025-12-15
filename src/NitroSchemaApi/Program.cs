@@ -26,6 +26,7 @@ var app = builder.Build();
 app.UseWebSockets();
 
 app.MapGet("/", () => Results.Ok(new { name = "nitro-schema-api", status = "running" }));
+app.MapGet("/health", () => Results.Ok("healthy"));
 
 app.Map("/ws", async (HttpContext context, WebSocketHub hub, FgpStore store, ILoggerFactory loggerFactory) =>
 {

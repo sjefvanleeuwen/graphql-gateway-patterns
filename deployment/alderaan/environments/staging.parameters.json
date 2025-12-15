@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "staging"
+    },
+    "location": {
+      "value": "northeurope"
+    },
+    "vnetAddressPrefix": {
+      "value": "10.215.0.0/16"
+    },
+    "acaInfrastructureSubnetPrefix": {
+      "value": "10.215.0.0/23"
+    },
+    "postgresSubnetPrefix": {
+      "value": "10.215.2.0/24"
+    },
+    "postgresAdminUsername": {
+      "value": "postgres"
+    },
+    "postgresVersion": {
+      "value": "15"
+    },
+    "acrSku": {
+      "value": "Standard"
+    },
+    "tags": {
+      "value": {
+        "environment": "staging",
+        "cost-center": "development"
+      }
+    }
+  }
+}

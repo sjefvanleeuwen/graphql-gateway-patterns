@@ -1,0 +1,62 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+name: graphql-gateway-patterns
+metadata:
+  template: graphql-gateway@0.1.0
+
+# Services map to Container Apps
+services:
+  gateway:
+    project: ../../src/Gateway
+    language: csharp
+    host: containerapp
+
+  frontend:
+    project: ../../frontend
+    language: js
+    host: containerapp
+
+  products:
+    project: ../../src/ProductsService
+    language: csharp
+    host: containerapp
+
+  reviews:
+    project: ../../src/ReviewsService
+    language: csharp
+    host: containerapp
+
+  shipping:
+    project: ../../src/ShippingService
+    language: csharp
+    host: containerapp
+
+  orders:
+    project: ../../src/OrdersService
+    language: csharp
+    host: containerapp
+
+  backoffice:
+    project: ../../src/BackOfficeService
+    language: csharp
+    host: containerapp
+
+  nitro-schema-api:
+    project: ../../src/NitroSchemaApi
+    language: csharp
+    host: containerapp
+
+# Infrastructure configuration
+infra:
+  provider: bicep
+  path: ./infra
+  module: main
+
+# Lifecycle hooks
+hooks:
+  postprovision:
+    windows:
+      shell: pwsh
+      run: ./scripts/post-provision.ps1
+    posix:
+      shell: bash
+      run: ./scripts/post-provision.sh

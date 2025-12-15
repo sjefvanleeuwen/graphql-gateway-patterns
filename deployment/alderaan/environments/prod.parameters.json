@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environmentName": {
+      "value": "prod"
+    },
+    "location": {
+      "value": "westeurope"
+    },
+    "vnetAddressPrefix": {
+      "value": "10.220.0.0/16"
+    },
+    "acaInfrastructureSubnetPrefix": {
+      "value": "10.220.0.0/23"
+    },
+    "postgresSubnetPrefix": {
+      "value": "10.220.2.0/24"
+    },
+    "postgresAdminUsername": {
+      "value": "pgadmin"
+    },
+    "postgresVersion": {
+      "value": "16"
+    },
+    "acrSku": {
+      "value": "Premium"
+    },
+    "tags": {
+      "value": {
+        "environment": "prod",
+        "cost-center": "production",
+        "compliance": "soc2"
+      }
+    }
+  }
+}
