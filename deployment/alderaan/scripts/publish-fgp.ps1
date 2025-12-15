@@ -9,6 +9,9 @@ param(
     [ValidateSet('local', 'aca')]
     [string]$Environment = 'aca',
     
+    [Parameter(Mandatory = $false)]
+    [string]$Token,
+    
     [switch]$DryRun
 )
 
@@ -16,34 +19,46 @@ $ErrorActionPreference = 'Stop'
 
 # Get resource group from azd
 $resourceGroup = azd env get-value AZURE_RESOURCE_GROUP 2>$null
+$envToken = azd env get-value NITRO_ADMIN_TOKEN 2>$null
 
-Write-Host "╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "║               Compose & Publish Gateway FGP                  ║" -ForegroundColor Cyan
-Write-Host "╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+if ([string]::IsNullOrWhiteSpace($Token) -and -not [string]::IsNullOrWhiteSpace($envToken)) {
+    $Token = $envToken
+}
+
+Write-Host "--------------------------------------------------" -ForegroundColor Cyan
+Write-Host "          Compose & Publish Gateway FGP           " -ForegroundColor Cyan
+Write-Host "--------------------------------------------------" -ForegroundColor Cyan
 Write-Host ""
 
 # Find repo root
-$scriptDir = Split-Path -Parent $PSScriptRoot
-$repoRoot = Split-Path -Parent $scriptDir
+$alderaanDir = Split-Path -Parent $PSScriptRoot
+$deploymentDir = Split-Path -Parent $alderaanDir
+$repoRoot = Split-Path -Parent $deploymentDir
 $srcDir = Join-Path $repoRoot "src"
 
 $composeFgpScript = Join-Path $srcDir "compose-fgp.ps1"
 
 if (-not (Test-Path $composeFgpScript)) {
-    Write-Host "❌ compose-fgp.ps1 not found at: $composeFgpScript" -ForegroundColor Red
+    Write-Host "[X] compose-fgp.ps1 not found at: $composeFgpScript" -ForegroundColor Red
     exit 1
 }
 
 Push-Location $srcDir
 try {
-    $params = @('-Environment', $Environment)
+    $params = @{
+        Environment = $Environment
+    }
     
     if (-not [string]::IsNullOrWhiteSpace($resourceGroup)) {
-        $params += @('-ResourceGroup', $resourceGroup)
+        $params["ResourceGroup"] = $resourceGroup
+    }
+    
+    if (-not [string]::IsNullOrWhiteSpace($Token)) {
+        $params["Token"] = $Token
     }
     
     if ($DryRun) {
-        $params += '-DryRun'
+        $params["DryRun"] = $true
     }
     
     & $composeFgpScript @params

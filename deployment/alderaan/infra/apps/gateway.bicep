@@ -78,7 +78,7 @@ resource gateway 'Microsoft.App/containerApps@2024-03-01' = {
             {
               type: 'Liveness'
               httpGet: {
-                path: '/graphql?query=%7B__typename%7D'
+                path: '/status/graphql?query=%7B__typename%7D'
                 port: 8080
               }
               initialDelaySeconds: 20
@@ -88,7 +88,7 @@ resource gateway 'Microsoft.App/containerApps@2024-03-01' = {
             {
               type: 'Readiness'
               httpGet: {
-                path: '/graphql?query=%7B__typename%7D'
+                path: '/status/graphql?query=%7B__typename%7D'
                 port: 8080
               }
               initialDelaySeconds: 10

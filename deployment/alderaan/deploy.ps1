@@ -349,10 +349,10 @@ if ($SkipFgpPublish) {
     Write-Host "  [Skip] Skipping FGP publish step" -ForegroundColor Yellow
 } else {
     # Ensure Fusion CLI is installed
-    $fusionInstalled = dotnet tool list -g | Select-String -Pattern "fusioncli" -Quiet
+    $fusionInstalled = dotnet tool list -g | Select-String -Pattern "fusion" -Quiet
     if (-not $fusionInstalled) {
         Write-Host "  Installing Fusion CLI..." -ForegroundColor Yellow
-        dotnet tool install -g FusionCli
+        dotnet tool install -g HotChocolate.Fusion.Cli
         if ($LASTEXITCODE -ne 0) { throw "Failed to install Fusion CLI" }
     }
     
