@@ -1,0 +1,150 @@
+trigger:
+  - main
+
+variables:
+  - group: 'aca-variable-group' # Ensure this Variable Group exists in ADO Library with: NitroAdminToken, PostgresPassword
+  - name: location
+    value: 'northeurope'
+  - name: environmentName
+    value: 'alderaan'
+  - name: serviceConnectionName
+    value: 'AzureConnection' # Update this with your Service Connection name
+
+stages:
+  # ------------------------------------------------------------------
+  # STAGE 1: INFRASTRUCTURE
+  # ------------------------------------------------------------------
+  - stage: Infrastructure
+    displayName: 'Provision Infrastructure'
+    jobs:
+      - job: Provision
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: AzureCLI@2
+            name: DeployBicep
+            displayName: 'Deploy Bicep'
+            inputs:
+              azureSubscription: $(serviceConnectionName)
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                Write-Host "Deploying Infrastructure..."
+                $output = az deployment sub create `
+                  --location $(location) `
+                  --template-file deployment/alderaan/infra/main.bicep `
+                  --parameters environmentName=$(environmentName) `
+                               postgresAdminPassword=$(PostgresPassword) `
+                               nitroAdminToken=$(NitroAdminToken) `
+                  --output json | ConvertFrom-Json
+                
+                $acrName = $output.properties.outputs.AZURE_CONTAINER_REGISTRY_NAME.value
+                $rgName = $output.properties.outputs.AZURE_RESOURCE_GROUP.value
+                
+                Write-Host "ACR Name: $acrName"
+                Write-Host "Resource Group: $rgName"
+                
+                # Set variables for future stages
+                Write-Host "##vso[task.setvariable variable=ACR_NAME;isOutput=true]$acrName"
+                Write-Host "##vso[task.setvariable variable=RG_NAME;isOutput=true]$rgName"
+
+  # ------------------------------------------------------------------
+  # STAGE 2: BUILD & PUSH
+  # ------------------------------------------------------------------
+  - stage: Build
+    displayName: 'Build & Push Images'
+    dependsOn: Infrastructure
+    variables:
+      ACR_NAME: $[ stageDependencies.Infrastructure.Provision.outputs['DeployBicep.ACR_NAME'] ]
+    jobs:
+      - job: BuildImages
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Run Build Script'
+            inputs:
+              azureSubscription: $(serviceConnectionName)
+              scriptType: 'pscore'
+              scriptPath: 'deployment/alderaan/scripts/build-images.ps1'
+              arguments: '-AcrName $(ACR_NAME) -ImageTag $(Build.BuildId) -AlsoTagTimestamp'
+
+  # ------------------------------------------------------------------
+  # STAGE 3: DEPLOY APPS
+  # ------------------------------------------------------------------
+  - stage: Deploy
+    displayName: 'Deploy Container Apps'
+    dependsOn: 
+      - Infrastructure
+      - Build
+    variables:
+      ACR_NAME: $[ stageDependencies.Infrastructure.Provision.outputs['DeployBicep.ACR_NAME'] ]
+      RG_NAME: $[ stageDependencies.Infrastructure.Provision.outputs['DeployBicep.RG_NAME'] ]
+    jobs:
+      - job: DeployApps
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Update Container Apps'
+            inputs:
+              azureSubscription: $(serviceConnectionName)
+              scriptType: 'pscore'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                $services = @("gateway", "frontend", "products", "reviews", "shipping", "orders", "backoffice", "nitro-schema-api")
+                $imageTag = "$(Build.BuildId)"
+                $acrName = "$(ACR_NAME)"
+                $rgName = "$(RG_NAME)"
+                
+                Write-Host "Deploying to Resource Group: $rgName"
+                Write-Host "Using Image Tag: $imageTag"
+                
+                foreach ($service in $services) {
+                    Write-Host "Processing service: $service"
+                    
+                    # Find Container App by tag
+                    $appName = az containerapp list -g $rgName --query "[?tags.`"azd-service-name`"=='$service'].name" -o tsv
+                    
+                    if (-not [string]::IsNullOrWhiteSpace($appName)) {
+                        Write-Host "  Found App: $appName. Updating..."
+                        
+                        # Construct image name (assuming convention from build-images.ps1)
+                        # build-images.ps1 uses: $acrName.azurecr.io/graphql-gateway/$service:$tag
+                        $imageName = "$acrName.azurecr.io/graphql-gateway/$service:$imageTag"
+                        
+                        az containerapp update `
+                            --name $appName `
+                            --resource-group $rgName `
+                            --image $imageName `
+                            --output none
+                            
+                        Write-Host "  [OK] Updated $appName"
+                    } else {
+                        Write-Host "  [Warn] No Container App found for service '$service'"
+                    }
+                }
+
+  # ------------------------------------------------------------------
+  # STAGE 4: PUBLISH SCHEMA
+  # ------------------------------------------------------------------
+  - stage: Schema
+    displayName: 'Publish Fusion Schema'
+    dependsOn: Deploy
+    variables:
+      RG_NAME: $[ stageDependencies.Infrastructure.Provision.outputs['DeployBicep.RG_NAME'] ]
+    jobs:
+      - job: PublishFGP
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - script: dotnet tool install -g HotChocolate.Fusion.CommandLine
+            displayName: 'Install Fusion CLI'
+          
+          - task: AzureCLI@2
+            displayName: 'Publish FGP'
+            inputs:
+              azureSubscription: $(serviceConnectionName)
+              scriptType: 'pscore'
+              scriptPath: 'deployment/alderaan/scripts/publish-fgp.ps1'
+              arguments: '-ResourceGroup $(RG_NAME) -Token $(NitroAdminToken) -Environment aca'

@@ -12,13 +12,18 @@ param(
     [Parameter(Mandatory = $false)]
     [string]$Token,
     
+    [Parameter(Mandatory = $false)]
+    [string]$ResourceGroup,
+
     [switch]$DryRun
 )
 
 $ErrorActionPreference = 'Stop'
 
-# Get resource group from azd
-$resourceGroup = azd env get-value AZURE_RESOURCE_GROUP 2>$null
+# Get resource group from azd if not provided
+if ([string]::IsNullOrWhiteSpace($ResourceGroup)) {
+    $ResourceGroup = azd env get-value AZURE_RESOURCE_GROUP 2>$null
+}
 $envToken = azd env get-value NITRO_ADMIN_TOKEN 2>$null
 
 if ([string]::IsNullOrWhiteSpace($Token) -and -not [string]::IsNullOrWhiteSpace($envToken)) {

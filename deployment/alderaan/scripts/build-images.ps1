@@ -16,17 +16,25 @@ param(
     
     [switch]$AlsoTagTimestamp,
     [switch]$SkipBuild,
-    [switch]$ListOnly  # Just list discovered services, don't build
+    [switch]$ListOnly,  # Just list discovered services, don't build
+
+    [Parameter(Mandatory = $false)]
+    [string]$AcrName = $env:AZURE_CONTAINER_REGISTRY_NAME,
+
+    [Parameter(Mandatory = $false)]
+    [string]$AcrLoginServer = $env:AZURE_CONTAINER_REGISTRY_ENDPOINT
 )
 
 $ErrorActionPreference = 'Stop'
 
-# Get ACR info from azd
-$acrLoginServer = azd env get-value AZURE_CONTAINER_REGISTRY_ENDPOINT 2>$null
-$acrName = azd env get-value AZURE_CONTAINER_REGISTRY_NAME 2>$null
+# Get ACR info from azd if not provided
+if ([string]::IsNullOrWhiteSpace($AcrLoginServer) -or [string]::IsNullOrWhiteSpace($AcrName)) {
+    $AcrLoginServer = azd env get-value AZURE_CONTAINER_REGISTRY_ENDPOINT 2>$null
+    $AcrName = azd env get-value AZURE_CONTAINER_REGISTRY_NAME 2>$null
+}
 
-if ([string]::IsNullOrWhiteSpace($acrLoginServer) -or [string]::IsNullOrWhiteSpace($acrName)) {
-    Write-Host "[X] ACR not found. Run 'azd provision' first." -ForegroundColor Red
+if ([string]::IsNullOrWhiteSpace($AcrLoginServer) -or [string]::IsNullOrWhiteSpace($AcrName)) {
+    Write-Host "[X] ACR not found. Provide parameters, set env vars, or run 'azd provision'." -ForegroundColor Red
     exit 1
 }
 
