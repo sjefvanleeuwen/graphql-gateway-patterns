@@ -1,5 +1,3 @@
-using HotChocolate.Types;
-
 namespace ReviewsService;
 
 public class Query
@@ -18,10 +16,18 @@ public class Query
         };
     }
 
+    /// <summary>
+    /// Get all reviews.
+    /// Authorization is handled at the Gateway level (CanViewReviews policy).
+    /// </summary>
     [UsePaging]
     [UseFiltering]
     [UseSorting]
     public IEnumerable<Review> GetReviews() => _reviews;
 
+    /// <summary>
+    /// Get a single review by ID.
+    /// Authorization is handled at the Gateway level.
+    /// </summary>
     public Review? GetReview(string id) => _reviews.FirstOrDefault(r => r.Id == id);
 }

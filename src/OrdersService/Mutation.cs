@@ -6,6 +6,10 @@ namespace OrdersService;
 
 public class Mutation
 {
+    /// <summary>
+    /// Place a new order.
+    /// Authorization is handled at the Gateway level (CanPlaceOrders policy).
+    /// </summary>
     public async Task<Order> PlaceOrder(
         [Service] IMessageBus bus,
         string productId,

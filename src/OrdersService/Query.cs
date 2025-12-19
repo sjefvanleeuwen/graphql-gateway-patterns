@@ -5,6 +5,10 @@ namespace OrdersService;
 
 public class Query
 {
+    /// <summary>
+    /// Get all orders.
+    /// Authorization is handled at the Gateway level (CanViewOrders policy).
+    /// </summary>
     [UsePaging]
     [UseFiltering]
     [UseSorting]

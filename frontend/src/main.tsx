@@ -2,10 +2,24 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { ApolloClient, InMemoryCache, ApolloProvider, split, HttpLink } from '@apollo/client';
+import { ApolloClient, InMemoryCache, ApolloProvider, split, HttpLink, ApolloLink } from '@apollo/client';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
+import { setContext } from '@apollo/client/link/context';
+
+// Auth link to add JWT token to requests
+const authLink = setContext((_, { headers }) => {
+  // Get JWT token from localStorage
+  const token = localStorage.getItem('jwt_token');
+  
+  return {
+    headers: {
+      ...headers,
+      authorization: token ? `Bearer ${token}` : '',
+    }
+  };
+});
 
 const httpLink = new HttpLink({
   uri: 'http://localhost:5000/graphql',
@@ -13,6 +27,12 @@ const httpLink = new HttpLink({
 
 const wsLink = new GraphQLWsLink(createClient({
   url: 'ws://localhost:5000/graphql',
+  connectionParams: () => {
+    const token = localStorage.getItem('jwt_token');
+    return token ? {
+      authorization: `Bearer ${token}`,
+    } : {};
+  },
 }));
 
 const splitLink = split(
@@ -24,7 +44,7 @@ const splitLink = split(
     );
   },
   wsLink,
-  httpLink,
+  authLink.concat(httpLink),
 );
 
 const client = new ApolloClient({
