@@ -1234,29 +1234,121 @@
   bottom: 1rem;
   left: 1rem;
   right: 1rem;
-  background: rgba(30, 30, 46, 0.95);
+  max-width: 500px;
+  background: rgba(30, 30, 46, 0.98);
   border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 1rem;
   backdrop-filter: blur(10px);
 }
 
+.node-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .node-details h4 {
-  margin: 0 0 0.5rem 0;
+  margin: 0;
+  color: #fff;
+  font-size: 1.1rem;
+}
+
+.total-cost {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.75rem;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(59, 130, 246, 0.3));
+  border-radius: 6px;
+  color: #c4b5fd;
+  font-size: 0.85rem;
+}
+
+.total-cost strong {
   color: #fff;
   font-size: 1rem;
 }
 
-.node-details .connections {
+.cost-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.cost-section {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.cost-section.warning {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.cost-label {
+  color: #9ca3af;
+}
+
+.cost-value {
+  color: #fff;
+  font-weight: 600;
+}
+
+.high-cost-fields {
+  margin-bottom: 0.75rem;
+}
+
+.section-label {
+  display: block;
+  color: #9ca3af;
+  font-size: 0.8rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.field-costs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field-cost-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.35rem 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.field-cost-name {
+  color: #a78bfa;
+}
+
+.field-cost-value {
+  font-weight: 600;
+}
+
+.connections {
+  margin-top: 0.5rem;
+}
+
+.connection-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  align-items: center;
-}
-
-.node-details .label {
-  color: #9ca3af;
-  font-size: 0.85rem;
+  margin-top: 0.35rem;
 }
 
 .connection-tag {
@@ -1273,6 +1365,57 @@
 .connection-tag small {
   color: #6b7280;
   font-size: 0.75rem;
+}
+
+/* Cost indicators for list view */
+.type-cost {
+  margin-left: auto;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.type-cost.low {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.type-cost.medium {
+  background: rgba(245, 158, 35, 0.2);
+  color: #f59e0b;
+}
+
+.type-cost.high {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.field-cost-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.field-cost-indicator.low {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.field-cost-indicator.medium {
+  background: rgba(245, 158, 35, 0.2);
+  color: #f59e0b;
+}
+
+.field-cost-indicator.high {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
 }
 
 .error-banner {

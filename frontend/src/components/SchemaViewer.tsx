@@ -1,19 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
-import { Network, RefreshCw, Search, ChevronDown, ChevronRight, ZoomIn, ZoomOut, Move } from 'lucide-react';
+import { Network, RefreshCw, Search, ChevronDown, ChevronRight, ZoomIn, ZoomOut, Move, DollarSign } from 'lucide-react';
 import { getIntrospectionQuery, buildClientSchema, printSchema } from 'graphql';
 import toast from 'react-hot-toast';
+
+interface FieldInfo {
+  name: string;
+  type: string;
+  typeName: string;
+  description?: string;
+  args?: Array<{ name: string; type: string }>;
+  cost: number;
+  isList: boolean;
+}
 
 interface SchemaType {
   name: string;
   kind: string;
   description?: string;
-  fields?: Array<{
-    name: string;
-    type: string;
-    typeName: string;
-    description?: string;
-    args?: Array<{ name: string; type: string }>;
-  }>;
+  fields?: FieldInfo[];
+  totalCost?: number;
 }
 
 interface DiagramNode {
@@ -79,23 +84,33 @@ export default function SchemaViewer() {
       setSdl(schemaSDL);
 
       // Extract types for visual view
-      const introspectionTypes = result.data.__schema.types
+      const allRawTypes = result.data.__schema.types;
+      const introspectionTypes = allRawTypes
         .filter((t: any) => !t.name.startsWith('__'))
-        .map((t: any) => ({
-          name: t.name,
-          kind: t.kind,
-          description: t.description,
-          fields: t.fields?.map((f: any) => ({
+        .map((t: any) => {
+          const fields = t.fields?.map((f: any) => ({
             name: f.name,
             type: formatType(f.type),
             typeName: getBaseTypeName(f.type),
             description: f.description,
+            cost: calculateFieldCost(f.type, allRawTypes),
+            isList: isListType(f.type),
             args: f.args?.map((a: any) => ({
               name: a.name,
               type: formatType(a.type)
             }))
-          }))
-        }));
+          }));
+          
+          const totalCost = fields?.reduce((sum: number, f: FieldInfo) => sum + f.cost, 0) || 0;
+          
+          return {
+            name: t.name,
+            kind: t.kind,
+            description: t.description,
+            fields,
+            totalCost
+          };
+        });
       
       setTypes(introspectionTypes);
       buildDiagram(introspectionTypes);
@@ -125,6 +140,41 @@ export default function SchemaViewer() {
       return getBaseTypeName(type.ofType);
     }
     return type.name || '';
+  };
+
+  const isListType = (type: any): boolean => {
+    if (type.kind === 'LIST') return true;
+    if (type.ofType) return isListType(type.ofType);
+    return false;
+  };
+
+  // Calculate field complexity cost based on type
+  const calculateFieldCost = (type: any, allTypes: any[]): number => {
+    const baseTypeName = getBaseTypeName(type);
+    const isList = isListType(type);
+    
+    // Scalar types have low cost
+    const scalars = ['String', 'Int', 'Float', 'Boolean', 'ID', 'DateTime', 'UUID', 'Decimal'];
+    if (scalars.includes(baseTypeName)) {
+      return 1;
+    }
+    
+    // Enum types have low cost
+    const enumType = allTypes.find((t: any) => t.name === baseTypeName && t.kind === 'ENUM');
+    if (enumType) {
+      return 1;
+    }
+    
+    // Object types have higher cost
+    const objectType = allTypes.find((t: any) => t.name === baseTypeName && t.kind === 'OBJECT');
+    if (objectType) {
+      const fieldCount = objectType.fields?.length || 0;
+      const baseCost = 5 + Math.min(fieldCount, 10); // Base cost for object + field overhead
+      return isList ? baseCost * 10 : baseCost; // Lists multiply cost
+    }
+    
+    // Default cost
+    return isList ? 10 : 2;
   };
 
   const buildDiagram = (schemaTypes: SchemaType[]) => {
@@ -317,12 +367,20 @@ export default function SchemaViewer() {
             <span className="type-kind" style={{ backgroundColor: getKindColor(type.kind) }}>
               {type.kind}
             </span>
+            {type.totalCost !== undefined && type.totalCost > 0 && (
+              <span className={`type-cost ${type.totalCost > 100 ? 'high' : type.totalCost > 30 ? 'medium' : 'low'}`}>
+                ⚡ {type.totalCost}
+              </span>
+            )}
           </div>
         </div>
         {isExpanded && type.fields && (
           <div className="type-fields">
             {type.fields.map(field => (
               <div key={field.name} className="field-item">
+                <span className={`field-cost-indicator ${field.cost > 50 ? 'high' : field.cost > 10 ? 'medium' : 'low'}`}>
+                  {field.cost}
+                </span>
                 <span className="field-name">{field.name}</span>
                 {field.args && field.args.length > 0 && (
                   <span className="field-args">
@@ -448,6 +506,15 @@ export default function SchemaViewer() {
               {/* Fields */}
               {node.type.fields?.slice(0, 8).map((field, idx) => (
                 <g key={field.name} transform={`translate(0, ${40 + idx * 24})`}>
+                  {/* Cost indicator bar */}
+                  <rect
+                    x="0"
+                    y="4"
+                    width={Math.min(field.cost * 2, 6)}
+                    height="14"
+                    fill={field.cost > 50 ? '#ef4444' : field.cost > 10 ? '#f59e0b' : '#10b981'}
+                    opacity="0.6"
+                  />
                   <text x="10" y="16" fill="#a78bfa" fontSize="12">
                     {field.name}
                   </text>
@@ -474,20 +541,81 @@ export default function SchemaViewer() {
         </g>
       </svg>
       
-      {selectedNode && (
-        <div className="node-details">
-          <h4>{selectedNode}</h4>
-          <div className="connections">
-            <span className="label">Connections:</span>
-            {edges.filter(e => e.from === selectedNode || e.to === selectedNode).map((e, i) => (
-              <span key={i} className="connection-tag">
-                {e.from === selectedNode ? `→ ${e.to}` : `← ${e.from}`}
-                <small>({e.fieldName})</small>
-              </span>
-            ))}
+      {selectedNode && (() => {
+        const selectedType = nodes.find(n => n.id === selectedNode)?.type;
+        const connectedEdges = edges.filter(e => e.from === selectedNode || e.to === selectedNode);
+        const highCostFields = selectedType?.fields?.filter(f => f.cost > 10) || [];
+        const listFields = selectedType?.fields?.filter(f => f.isList) || [];
+        
+        return (
+          <div className="node-details">
+            <div className="node-details-header">
+              <h4>{selectedNode}</h4>
+              {selectedType?.totalCost !== undefined && (
+                <div className="total-cost">
+                  <DollarSign size={14} />
+                  <span>Total Complexity: <strong>{selectedType.totalCost}</strong></span>
+                </div>
+              )}
+            </div>
+            
+            <div className="cost-breakdown">
+              <div className="cost-section">
+                <span className="cost-label">Fields:</span>
+                <span className="cost-value">{selectedType?.fields?.length || 0}</span>
+              </div>
+              <div className="cost-section">
+                <span className="cost-label">Connections:</span>
+                <span className="cost-value">{connectedEdges.length}</span>
+              </div>
+              {highCostFields.length > 0 && (
+                <div className="cost-section warning">
+                  <span className="cost-label">⚠️ High cost fields:</span>
+                  <span className="cost-value">{highCostFields.length}</span>
+                </div>
+              )}
+              {listFields.length > 0 && (
+                <div className="cost-section">
+                  <span className="cost-label">📋 List fields:</span>
+                  <span className="cost-value">{listFields.length}</span>
+                </div>
+              )}
+            </div>
+
+            {highCostFields.length > 0 && (
+              <div className="high-cost-fields">
+                <span className="section-label">Expensive Fields:</span>
+                <div className="field-costs">
+                  {highCostFields.slice(0, 5).map(f => (
+                    <div key={f.name} className="field-cost-item">
+                      <span className="field-cost-name">{f.name}</span>
+                      <span className="field-cost-value" style={{ 
+                        color: f.cost > 50 ? '#ef4444' : '#f59e0b' 
+                      }}>
+                        {f.cost} {f.isList && '(list)'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {connectedEdges.length > 0 && (
+              <div className="connections">
+                <span className="section-label">Relationships:</span>
+                <div className="connection-tags">
+                  {connectedEdges.map((e, i) => (
+                    <span key={i} className="connection-tag">
+                      {e.from === selectedNode ? `→ ${e.to}` : `← ${e.from}`}
+                      <small>({e.fieldName})</small>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 
